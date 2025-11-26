@@ -67,10 +67,15 @@ rp$republican = NULL
 rp$urban = NULL
 rp$under25 = NULL
 rp$age20_44 = NULL
-rp$dist_votes = NULL # linear combo of votes divided by party
+rp$c_votes = NULL # reveals election results
+rp$d_votes_floser = NULL # reveals election results
 rp$independent = NULL
 rp$votemargin = NULL # reveals the margin of victory
 rp$pctnonwhite = NULL
+rp$pctnevermarried = NULL # makes default current marriage status (combine with missing divorce)
+rp$mmd = NULL # shows median marginal district 
+rp$thrdparty = NULL # mostly missing
+rp$legis_ideal = NULL # mostly missing & not demographic
 
 # not relevant to regression
 rp$vote_yes = NULL
@@ -87,17 +92,27 @@ rp$term_length = NULL
 rp$supermajority60 = NULL
 rp$supermajority66 = NULL
 rp$supermajority75 = NULL
+rp$district_magnitude = NULL
+rp$AllRelig = NULL # not specific nor a proportion out of pop
+rp$district = NULL
 
+# repeat for democrats
 dm = subset(df, democrat == 1)
 dm$democrat = NULL
 dm$republican = NULL
 dm$urban = NULL
 dm$under25 = NULL
 dm$age20_44 = NULL
-dm$dist_votes = NULL # linear combo of votes divided by party
+dm$c_votes = NULL # reveals election results
+dm$d_votes_floser = NULL # reveals election results
 dm$independent = NULL
 dm$votemargin = NULL # reveals the margin of victory
 dm$pctnonwhite = NULL
+dm$pctnevermarried = NULL # makes default current marriage status (combine with missing divorce)
+dm$district_magnitude = NULL
+dm$thrdparty = NULL # mostly missing
+dm$legis_ideal = NULL # mostly missing & not demographic
+dm$district = NULL
 
 dm$vote_no = NULL
 dm$vote_yes = NULL
@@ -113,6 +128,9 @@ dm$term_length = NULL
 dm$supermajority60 = NULL
 dm$supermajority66 = NULL
 dm$supermajority75 = NULL
+dm$AllRelig = NULL # not specific nor a proportion out of pop
+dm$mmd = NULL # shows median marginal district 
+
 
 allvars_dm <- lm(margin_of_victory ~ ., data = dm)
 allvars_rp <- lm(margin_of_victory ~ ., data = rp)
@@ -120,71 +138,49 @@ allvars_rp <- lm(margin_of_victory ~ ., data = rp)
 aic_step_dm = step(allvars_dm, direction="both")
 aic_step_rp = step(allvars_rp, direction="both")
 
+model_full_dm <- lm(margin_of_victory ~ ., data = dm)
+model_full_rp <- lm(margin_of_victory ~ ., data = rp)
 
 
-library(caret)
-
-# Exclude the response
-predictors_dm <- dm[, setdiff(names(dm), "margin_of_victory")]
-
-predictors_dm <- predictors_dm[, sapply(predictors_dm, is.numeric)]
-predictors_dm[!is.finite(as.matrix(predictors_dm))] <- NA
-
-predictors_clean_dm <- predictors_dm[, colSums(is.na(predictors_dm)) == 0]
+library(car)
+vif(aic_step_dm)
+vif(aic_step_rp)
 
 
-# Find linear combinations
-combo <- findLinearCombos(predictors_clean_dm)
+library(MASS)
+library(glmnet)
 
-combo$remove  # columns to remove
-dm_final <- dm[, !names(dm) %in% names(predictors_clean_dm)[combo$remove]]
-
-
-
-predictors_rp <- rp[, setdiff(names(rp), "margin_of_victory")]
-
-predictors_rp <- predictors_rp[, sapply(predictors_rp, is.numeric)]
-predictors_rp[!is.finite(as.matrix(predictors_rp))] <- NA
-
-predictors_clean_rp <- predictors_rp[, colSums(is.na(predictors_rp)) == 0]
+dm <- na.omit(dm) # drop 8 rows
+rp <- na.omit(rp) # drop 19 rows
 
 
-# Find linear combinations
-combo <- findLinearCombos(predictors_clean_rp)
+X_dm =  model.matrix(margin_of_victory ~ ., data = dm)[, -1] # drop added intercept
+y_dm = dm$margin_of_victory
 
-combo$remove  # columns to remove
-rp_final <- rp[, !names(rp) %in% names(predictors_clean_rp)[combo$remove]]
+ridge_res_dm <- glmnet(X_dm, y = y_dm, alpha = 0, nfolds=10) # alpha = 0 for ridge
+lasso_res_dm <- glmnet(X_dm, y = y_dm, alpha = 1, nfolds=10) # alpha = 1 for LASSO
 
+X_rp =  model.matrix(margin_of_victory ~ ., data = rp)[, -1] # drop added intercept
+y_rp = rp$margin_of_victory
 
-hist(dm_final$margin_of_victory)
-hist(rp_final$margin_of_victory)
+ridge_res_rp <- glmnet(X_rp, y = y_rp, alpha = 0, nfolds=10) # alpha = 0 for ridge
+lasso_res_rp <- glmnet(X_rp, y = y_rp, alpha = 1, nfolds=10) # alpha = 1 for LASSO
 
-# both are right skewed
+# SELECTED lambda
 
-plot(dm$pctnonwhite, dm$margin_of_victory)
+cv_lasso$lambda.min
+cv_ridge$lambda.min
 
+ridge_res_dm <- glmnet(X_dm, y = y_dm, alpha = 0, nfolds=10, lambda = ridge_res_dm$lambda.min) # alpha = 0 for ridge
+lasso_res_dm <- glmnet(X_dm, y = y_dm, alpha = 1, nfolds=10, lambda = lasso_res_dm$lambda.min) # alpha = 1 for LASSO
 
-# stepwise AIC
+ridge_res_rp <- glmnet(X_rp, y = y_rp, alpha = 0, nfolds=10, lambda=ridge_res_rp$lambda.min) # alpha = 0 for ridge
+lasso_res_rp <- glmnet(X_rp, y = y_rp, alpha = 1, nfolds=10, lambda=lasso_res_rp$lambda.min) # alpha = 1 for LASSO
 
-allvars_dm <- lm(margin_of_victory ~ ., data = dm_final, singular.ok = FALSE)
-allvars_rp <- lm(margin_of_victory ~ ., data = rp_final, singular.ok = FALSE)
+coef(ridge_res_dm)
 
-aic_step_dm = step(allvars_dm, direction="both")
-aic_step_rp = step(allvars_rp, direction="both")
+coef(lasso_res_dm)
 
+coef(ridge_res_rp)
 
-library(Matrix)
-
-
-# 2. Extract predictors (including the intercept column of 1s)
-# Remove the outcome variable 'margin_of_victory'
-predictors_dm <- model.matrix(margin_of_victory ~ ., data = dm)
-
-# 3. Calculate the rank
-rank_dm <- Matrix::rankMatrix(predictors_dm)[1]
-num_cols_dm <- ncol(predictors_dm)
-
-print(paste("DM Predictor Columns:", num_cols_dm))
-print(paste("DM Matrix Rank:", rank_dm))
-
-# If rank_dm < num_cols_dm, you must drop (num_cols_dm - rank_dm) more variables.
+coef(lasso_res_rp)
