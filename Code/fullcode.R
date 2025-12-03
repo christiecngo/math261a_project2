@@ -184,3 +184,37 @@ coef(lasso_res_dm)
 coef(ridge_res_rp)
 
 coef(lasso_res_rp)
+
+
+library("tidymodels")
+# 80% train, 10% validation, 10% test
+dm_split <- initial_validation_split(dm, prop = c(0.8, 0.10)) 
+
+# Extract the individual datasets
+dm_train <- training(dm_split)
+dm_validation <- validation(dm_split)
+dm_test <- testing(dm_split)
+
+rp_split <- initial_validation_split(rp, prop = c(0.8, 0.10)) 
+
+# Extract the individual datasets
+rp_train <- training(rp_split)
+rp_validation <- validation(rp_split)
+rp_test <- testing(rp_split)
+
+library(leaps)
+best_subsets_mod_dm <- regsubsets(margin_of_victory ~ ., data = dm, nvmax = 10)
+best_subsets_summary_dm <- summary(best_subsets_mod_dm)
+plot(1:10, best_subsets_summary_dm$adjr2,
+     type = "l",
+     xlab = "Number of predictors",
+     ylab = "Adjusted r-squared")
+points(1:10, best_subsets_summary_dm$adjr2)
+
+best_subsets_mod_rp <- regsubsets(margin_of_victory ~ ., data = rp, nvmax = 10)
+best_subsets_summary_rp <- summary(best_subsets_mod_rp)
+plot(1:10, best_subsets_summary_rp$adjr2,
+     type = "l",
+     xlab = "Number of predictors",
+     ylab = "Adjusted r-squared")
+points(1:10, best_subsets_summary_rp$adjr2)
