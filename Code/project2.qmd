@@ -7,9 +7,20 @@ editor: visual
 
 # Introduction
 
+	In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. Voters have a duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
+	However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. In this paper, we will construct a multiple linear regression model to predict the margin of victory based on demographics of an elected government official’s constituents. Since we subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be compared.
+
+
 # Data
 
+The data is curated from Kimberly Martin’s analysis of voting trends on state legislation related to the transgender athletes ban in sports with one bill kept per state, spanning 2020-2023. There are 29 different states with related bills in total with each row representing individual congressional members. Martin tracks relevant bills based on the Movement Advancement Project (MAP) and the Human Rights Campaign (HRC). Though this dataset is originally intended to study trends specific to the transgender athlete ban in sports, it provides the most reliable and comprehensive demographic characteristics of elected officials. The complete dataset contains 52 columns and 3654 rows in total. There is at least one Democratic and one Republican senator or representative included for each of the 29 states. Key features include binary variables about representatives, such as gender, race, and sexual orientation. Additional information includes the proportions of religious, racial, age, marital status, and educational categories for each official’s constituents. 
+
+
 # Method
+
+Prior to any modeling implementations, variables revealing election outcomes or irrelevant bill information will be omitted. We will also drop any margin of victory equal to 1 as they are uncontested elections. Again, using multiple linear regression, our goal is to predict the margin of victory of a congressmen based on their personal demographic information and that of their constituents. We also dropped several rows with any omitted values that were most likely missing at random, resulting in 700 observations for Democrats and 1760 for Republicans. Despite a smaller data size for Democrats, splitting this cohort will best serve our goal of observing prediction accuracy. With this size limit in mind, each subset, the data was split into a training, validation, and testing set with the ratio of 80/10/10. 
+
+
 
 # Result
 
