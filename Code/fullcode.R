@@ -35,7 +35,6 @@ library(reshape2)
 
 library(car)
 
-plot(dm$pctnonwhite, logit_d_mov)
 
 # skip transformation of margin of victory (can approach inf)
 my_response = "margin_of_victory"
@@ -216,18 +215,16 @@ model_full_rp <- lm(margin_of_victory ~ ., data = rp)
 
 library("tidymodels")
 # 80% train, 0% validation, 20% test -> will use cross validation 10-folds
-dm_split <- initial_validation_split(dm, prop = c(0.8, 0.0, 0.10)) 
+dm_split <- initial_split(dm, prop = 0.8)
 
 # Extract the individual datasets
 dm_train <- training(dm_split)
-dm_validation <- validation(dm_split)
 dm_test <- testing(dm_split)
 
-rp_split <- initial_validation_split(rp, prop = c(0.8, 0.0, 0.10)) 
+rp_split <- initial_split(rp, prop = 0.8)
 
 # Extract the individual datasets
 rp_train <- training(rp_split)
-rp_validation <- validation(rp_split)
 rp_test <- testing(rp_split)
 
 
@@ -289,7 +286,7 @@ model_stepwise_approx_dm <- train(
   data = dm,
   method = "leapSeq", # Sequential Search (Forward/Backward)
   trControl = ctrl,
-  tuneGrid = expand.grid(.nvmax = 1:(ncol(dm) - 1)),
+  tuneGrid = expand.grid(.nvmax = 1:10),
   metric="RMSE" # Test models with 1 to N-1 predictors
 )
 
@@ -299,7 +296,7 @@ model_stepwise_approx_rp <- train(
   data = rp,
   method = "leapSeq", # Sequential Search (Forward/Backward)
   trControl = ctrl,
-  tuneGrid = expand.grid(.nvmax = 1:(ncol(rp) - 1)),
+  tuneGrid = expand.grid(.nvmax = 1:10),
   metric="RMSE" # Test models with 1 to N-1 predictors
 )
 
@@ -318,6 +315,8 @@ results_rp <- resamples(list(
 # Summarize the average performance (Mean and SD of RMSE)
 summary(results_dm)
 summary(results_rp)
+
+par(mfrow = c(1, 2))
 
 # Visualize the comparison (lower box means better RMSE)
 bwplot(results_dm, metric = "RMSE")

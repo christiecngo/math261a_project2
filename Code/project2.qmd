@@ -5,20 +5,150 @@ format: pdf
 editor: visual
 ---
 
+```{r,echo=FALSE,message=FALSE, warning=FALSE, results=FALSE}
+setwd("C:\\Users\\chris\\Documents\\MAT 261A\\Project 2\\Data")
+df = read.csv("Trans Athletes DATA.csv")
+df = subset(df, (margin_of_victory != 1) & (margin_of_victory != 0)) # removing uncontested elections
+rp = subset(df, republican == 1)
+rp$democrat = NULL
+rp$republican = NULL
+rp$urban = NULL
+rp$under25 = NULL
+rp$age20_44 = NULL
+rp$c_votes = NULL # reveals election results
+rp$d_votes_floser = NULL # reveals election results
+rp$independent = NULL
+rp$votemargin = NULL # reveals the margin of victory
+rp$pctnonwhite = NULL
+rp$pctnevermarried = NULL # makes default current marriage status (combine with missing divorce)
+rp$mmd = NULL # shows median marginal district 
+rp$thrdparty = NULL # mostly missing
+rp$legis_ideal = NULL # mostly missing & not demographic
+
+# not relevant to regression
+rp$vote_yes = NULL
+rp$vote_no = NULL
+rp$election_year = NULL
+rp$bill_number = NULL
+rp$Bill_Prefix = NULL
+rp$VoteDate = NULL
+rp$lawmaker_name = NULL
+rp$state_abbrev = NULL
+rp$statename = NULL
+rp$Year = NULL
+rp$term_length = NULL
+rp$supermajority60 = NULL
+rp$supermajority66 = NULL
+rp$supermajority75 = NULL
+rp$district_magnitude = NULL
+rp$AllRelig = NULL # not specific nor a proportion out of pop
+rp$district = NULL
+
+# repeat for democrats
+dm = subset(df, democrat == 1)
+dm$democrat = NULL
+dm$republican = NULL
+dm$urban = NULL
+dm$under25 = NULL
+dm$age20_44 = NULL
+dm$c_votes = NULL # reveals election results
+dm$d_votes_floser = NULL # reveals election results
+dm$independent = NULL
+dm$votemargin = NULL # reveals the margin of victory
+dm$pctnonwhite = NULL
+dm$pctnevermarried = NULL # makes default current marriage status (combine with missing divorce)
+dm$district_magnitude = NULL
+dm$thrdparty = NULL # mostly missing
+dm$legis_ideal = NULL # mostly missing & not demographic
+dm$district = NULL
+
+dm$vote_no = NULL
+dm$vote_yes = NULL
+dm$election_year = NULL
+dm$bill_number = NULL
+dm$Bill_Prefix = NULL
+dm$VoteDate = NULL
+dm$lawmaker_name = NULL
+dm$state_abbrev = NULL
+dm$statename = NULL
+dm$Year = NULL
+dm$term_length = NULL
+dm$supermajority60 = NULL
+dm$supermajority66 = NULL
+dm$supermajority75 = NULL
+dm$AllRelig = NULL # not specific nor a proportion out of pop
+dm$mmd = NULL # shows median marginal district 
+
+
+dm <- na.omit(dm) # drop 8 rows
+rp <- na.omit(rp) # drop 19 rows
+
+allvars_dm <- lm(margin_of_victory ~ ., data = dm)
+allvars_rp <- lm(margin_of_victory ~ ., data = rp)
+```
+
 # Introduction
 
-	In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. Voters have a duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
-	However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. In this paper, we will construct a multiple linear regression model to predict the margin of victory based on demographics of an elected government official’s constituents. Since we subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be compared.
+	In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin foreshadows their ability to pursue policies (@ucsb). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s (@kimandzilinsky) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
+	However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. In this paper, we will construct a multiple linear regression model to predict the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
 
 
 # Data
 
-The data is curated from Kimberly Martin’s analysis of voting trends on state legislation related to the transgender athletes ban in sports with one bill kept per state, spanning 2020-2023. There are 29 different states with related bills in total with each row representing individual congressional members. Martin tracks relevant bills based on the Movement Advancement Project (MAP) and the Human Rights Campaign (HRC). Though this dataset is originally intended to study trends specific to the transgender athlete ban in sports, it provides the most reliable and comprehensive demographic characteristics of elected officials. The complete dataset contains 52 columns and 3654 rows in total. There is at least one Democratic and one Republican senator or representative included for each of the 29 states. Key features include binary variables about representatives, such as gender, race, and sexual orientation. Additional information includes the proportions of religious, racial, age, marital status, and educational categories for each official’s constituents. 
+The dataset is curated from Kimberly Martin’s analysis of voting trends on state legislation related to the transgender athletes ban in sports with one bill kept per state, spanning 2020-2023. There are 29 different states with related bills in total with each row representing individual congressional members. Martin tracks relevant bills based on the Movement Advancement Project (MAP) and the Human Rights Campaign (HRC). Though this dataset is originally intended to study trends specific to the transgender athlete ban in sports, it provides the most reliable and comprehensive demographic characteristics of elected officials. The complete dataset contains 52 columns and 3654 rows in total. There is at least one Democratic and one Republican senator or representative included for each of the 29 states. Key features include binary variables about representatives, such as gender, race, and sexual orientation. Additional information includes the proportions of religious, racial, age, marital status, and educational categories for each official’s constituents. 
 
 
 # Method
 
-Prior to any modeling implementations, variables revealing election outcomes or irrelevant bill information will be omitted. We will also drop any margin of victory equal to 1 as they are uncontested elections. Again, using multiple linear regression, our goal is to predict the margin of victory of a congressmen based on their personal demographic information and that of their constituents. We also dropped several rows with any omitted values that were most likely missing at random, resulting in 700 observations for Democrats and 1760 for Republicans. Despite a smaller data size for Democrats, splitting this cohort will best serve our goal of observing prediction accuracy. With this size limit in mind, each subset, the data was split into a training, validation, and testing set with the ratio of 80/10/10. 
+### Programming Language
+This analysis uses R Programming software and the following packages: dplyr, MASS, caret, glmnet, and tidymodels.
+
+### Data Cleaning
+Prior to any modeling implementations, variables revealing election outcomes or irrelevant bill information will be omitted. We excluded any observations with a margin of victory equal to 1 as they are uncontested elections and 0 as these are inaccurate entries. We also dropped several rows with any omitted values that were most likely missing at random. After subsetting by party, this resulted in 700 observations for Democrats and 1760 for Republicans. Despite a smaller data size for Democrats, splitting this cohort will best serve our goal of observing prediction accuracy by party.
+
+### Full Model and Diagnostics
+Through implementing multiple linear regression, our goal is to predict the margin of victory of a congressperson based on their personal demographic information and that of their constituents. The general formula for multiple linear regression is:
+
+$$\bf{Y}_{nx1} =  \bf{X}_{nxp} \boldsymbol{\beta}_{px1}+\epsilon_{nx1}$$
+$Y$ represents the response vector while $\beta$ is the coefficients associated with the $X$ predictor matrix. $\epsilon$ corresponds to the noise in the data due to measurement error or true variations. 
+
+#### Response Variable
+The response variable is the margin of victory column for each elected official's race. This ranges from 0.0148\% to 99.6887\%, with a median of 26.2647\%, after removing uncontested elections. 
+
+#### Key Predictors
+The following predictors remained after screening for variables that contained outcome information and athlete bill-specific columns.
+
+```{r, echo=FALSE}
+colnames(dm)
+```
+* Senate (binary 0 or 1) refers to whether the congressperson is in the Senate (1) or House of Representatives (0).
+
+* LGBT, Female, Black, Hispanic, NativeAmasian are all binary variables that takes on the value 1 if this characteristic describes the official.
+
+
+The full model includes all predictor variables and serves as a baseline comparison to subsets chosen by variable selection techniques. Data transformations were performed based on diagnostic plots using this comprehensive model.
+
+For precise confidence intervals and accurate coefficient estimates, the following assumptions of the ordinary least squares linear regression should hold to guaranteed the best linear unbiased estimators (BLUE):
+
+* Linearity: implies that a linear regression model is a good choice for representing the data (response Y vs. predictor(s) X)
+
+* Independence of Errors: ensures accurate confidence intervals and p-values based reliable calculations of standard errors.
+
+* Normality of Errors: allows for valid hypothesis tests and confidence intervals constructed
+
+* Equal Variance of Errors: implies that the estimates for the coefficients are the most optimal, as standard errors will be accurate.
+
+```{r, echo=FALSE, fig.cap="The left column represents the residual vs. fitted plot while the right covers the quantile-quantile plot, with blue for Democrat and red for Republican. Primarily in the Q-Q plot, the tail ends show deviation from the dotted line representing a perfect fit with the theoretical distribution. Both subsets violate the homoskedasticity assumption."}
+par(mfrow = c(2, 2))
+plot(allvars_dm, ,which = 1:2, col="blue")
+plot(allvars_rp, which=1:2, col="red")
+```
+
+### Data Transformations
+
+Due to violation of equal variance, shown clearly in the Q-Q plot, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets.
+
+With the limited data size in mind, each subset was split into a training/validation and a testing set with the ratio of 80/20. Cross-validation is performed to select the best model before observing performance on the test set. 
 
 
 
