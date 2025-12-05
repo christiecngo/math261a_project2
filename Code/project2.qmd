@@ -113,18 +113,33 @@ $$\bf{Y}_{nx1} =  \bf{X}_{nxp} \boldsymbol{\beta}_{px1}+\epsilon_{nx1}$$
 $Y$ represents the response vector while $\beta$ is the coefficients associated with the $X$ predictor matrix. $\epsilon$ corresponds to the noise in the data due to measurement error or true variations. 
 
 #### Response Variable
-The response variable is the margin of victory column for each elected official's race. This ranges from 0.0148\% to 99.6887\%, with a median of 26.2647\%, after removing uncontested elections. 
+The response variable is the "margin of victory column" for each elected official's race. This ranges from 0.0148\% to 99.6887\%, with a median of 26.2647\%, after removing uncontested elections. 
 
 #### Key Predictors
 The following predictors remained after screening for variables that contained outcome information and athlete bill-specific columns.
 
 ```{r, echo=FALSE}
-colnames(dm)
+names(dm)[c(1:7,9:21)]
 ```
 * Senate (binary 0 or 1) refers to whether the congressperson is in the Senate (1) or House of Representatives (0).
 
-* LGBT, Female, Black, Hispanic, NativeAmasian are all binary variables that takes on the value 1 if this characteristic describes the official.
+* LGBT, Female, Black, Hispanic, NativeAmAsian are all binary variables that takes on the value 1 if this characteristic describes the official.
 
+* "Dist_votes" is the total number of votes in the official's election while "district_ideal" is the political spectrum of the district on a scale of -1 (Very Liberal) to 0 (moderate) to 1 (Very Conservative).
+
+* Age 25-44, Age 45-64, Over 65 represents the proportion of the district's constituents in that age group.
+
+* [Pct=percentage] White, Black, Hispanic represents the proportion of the district's constituents in each racial group.
+
+* [Pct] Married is the proportion of married individuals in the district
+
+* [Pct] High school, bachelor degree is the proportion of the district who have completed these educational levels.
+
+* Rural represents the proportion of the district considered rural as opposed to urban.
+
+* SSMC is the number of same-sex marriage couples per 1000 households.
+
+* EP is the number of evangelical protestants per 1000 constituents. 
 
 The full model includes all predictor variables and serves as a baseline comparison to subsets chosen by variable selection techniques. Data transformations were performed based on diagnostic plots using this comprehensive model.
 
@@ -148,11 +163,204 @@ plot(allvars_rp, which=1:2, col="red")
 
 Due to violation of equal variance, shown clearly in the Q-Q plot, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets.
 
+```{r, results=FALSE, echo=FALSE}
+library(MASS)
+
+boxcox(allvars_rp)
+boxcox(allvars_dm)
+```
+
+```{r, echo=FALSE}
+library(dplyr)
+dm <- dm %>%
+  mutate(margin_of_victory_sqrt = sqrt(margin_of_victory))
+
+rp <- rp %>%
+  mutate(margin_of_victory_sqrt = sqrt(margin_of_victory))
+
+allvars_dm <- lm(margin_of_victory_sqrt ~ ., data = dm)
+allvars_rp <- lm(margin_of_victory_sqrt ~ ., data = rp)
+
+
+# residual plots still show a U-curve
+plot(allvars_dm, ,which = 1:2, main="Diagnostic Plots for Democrat Full Model")
+
+plot(allvars_rp, which=1:2, main="Diagnostic Plots for Republican Full Model")
+
+library(splines)
+
+transformed_model_poly_dm <- lm(
+  margin_of_victory_sqrt ~ bs(SSMC, df=3) + bs(EP, df=3) +  . - margin_of_victory, # includes all other untransformed columns
+  data = dm)
+
+
+transformed_model_poly_rp <- lm(
+  margin_of_victory_sqrt ~ bs(pctbachelordeg, df=3) + bs(rural,df=3) + 
+    bs(SSMC,df=3) + bs(EP,df=3) + SSMC*EP + . - margin_of_victory, # includes all other untransformed columns
+  data = rp)
+```
+
+
+After this transformation, the diagnostic plot now shows a curve in the residuals vs. fitted plot, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to highlight curvature. The predictors that showed some curvature for mainly improved for the Democratic subset after including splines terms of degrees of freedom 3. This is highlighted in (@fig) in the blue Q-Q plot, where the tail ends fall much more closely to the 45 degree line (representing a good fit with the theoretical distribution chosen).
+
+The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern (upper right) in the residual vs. fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(transformed_model_poly_dm, which = 1:2, col="blue")
+plot(transformed_model_poly_rp, which = 1:2, col="red")
+par(mfrow = c(1, 1))
+```
+
+### Splitting for Validation
+
 With the limited data size in mind, each subset was split into a training/validation and a testing set with the ratio of 80/20. Cross-validation is performed to select the best model before observing performance on the test set. 
 
+```{r, echo=FALSE, message=FALSE, warning=FALSE, result=FALSE}
+library("tidymodels")
+# 80% train, 0% validation, 20% test -> will use cross validation 10-folds
+dm_split <- initial_split(dm, prop = 0.8)
+
+# Extract the individual datasets
+dm_train <- training(dm_split)
+dm_test <- testing(dm_split)
+
+rp_split <- initial_split(rp, prop = 0.8)
+
+# Extract the individual datasets
+rp_train <- training(rp_split)
+rp_test <- testing(rp_split)
+```
+
+### Model Comparisons (Variable Selection Techniques)
+
+With the full model as the baseline, we used both LASSO and stepwise sequential search techniques to perform variable selection within each of the 10 folds of our training+validation set. The metric for selection was Root Mean Square Error (RMSE), which is the square root of the mean of differences between the predicted and observed values for the response variable. 
+
+LASSO is a regularization method that seeks to minimize a penalty term, $\lambda \sum |\beta_j|$. This shrinks the less important estimated coefficients to 0. For stepwise search, we fit a simple linear regression model for each of the $P-1$ predictors and add this predictor to the final model if it exceeds a predetermined threshold.
+
+```{r, echo=FALSE, output=FALSE, warning=FALSE}
+library(glmnet)
+library(caret)
+dm_final_formula = margin_of_victory_sqrt ~ bs(SSMC, df=3) + bs(EP, df=3) +  . - margin_of_victory
+rp_final_formula = margin_of_victory_sqrt ~ bs(pctbachelordeg, df=3) + bs(rural,df=3) + 
+    bs(SSMC,df=3) + bs(EP,df=3) + SSMC*EP + . - margin_of_victory
+
+# use trainControl function from caret, use RMSE as the metric
+ctrl <- trainControl(
+  method = "cv", # cross-validation 
+  number = 10 # 10-Fold CV
+)
+
+model_full_dm <- train(
+  dm_final_formula,
+  data = dm,
+  method = "lm", # Standard Linear Model
+  trControl = ctrl,
+  metric="RMSE"
+)
+
+
+model_full_rp <- train(
+  rp_final_formula,
+  data = rp,
+  method = "lm", # Standard Linear Model
+  trControl = ctrl,
+  metric="RMSE"
+)
+
+lasso_model_dm <- train(
+  dm_final_formula,
+  data = dm,
+  method = "glmnet",
+  trControl = ctrl,
+  preProc = c("center", "scale"), # IMPORTANT for LASSO
+  tuneGrid = expand.grid(.alpha = 1, .lambda = 10^seq(-3, 0, length = 50)), # Pure LASSO
+  metric="RMSE"
+)
+
+lasso_model_rp <- train(
+  rp_final_formula,
+  data = rp,
+  method = "glmnet",
+  trControl = ctrl,
+  preProc = c("center", "scale"), # IMPORTANT for LASSO
+  tuneGrid = expand.grid(.alpha = 1, .lambda = 10^seq(-3, 0, length = 50)),
+  metric="RMSE" # Pure LASSO
+)
+
+
+model_stepwise_approx_dm <- train(
+  dm_final_formula,
+  data = dm,
+  method = "leapSeq", # Sequential Search (Forward/Backward)
+  trControl = ctrl,
+  tuneGrid = expand.grid(.nvmax = 1:10),
+  metric="RMSE" 
+)
+
+model_stepwise_approx_rp <- train(
+  rp_final_formula,
+  data = rp,
+  method = "leapSeq", # Sequential Search (Forward/Backward)
+  trControl = ctrl,
+  tuneGrid = expand.grid(.nvmax = 1:10),
+  metric="RMSE"
+)
+
+results_dm <- resamples(list(
+  Full_Model = model_full_dm,
+  LASSO_Model = lasso_model_dm,
+  Stepwise = model_stepwise_approx_dm
+))
+
+results_rp <- resamples(list(
+  Full_Model = model_full_rp,
+  LASSO_Model = lasso_model_rp,
+  Stepwise = model_stepwise_approx_rp
+))
+```
 
 
 # Result
+
+Below are the boxplot comparisons of the results of the RMSE for the full, stepwise selected, and LASSO models:
+
+```{r, echo=FALSE}
+par(mfrow = c(2, 1))
+
+bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
+bwplot(results_rp, metric = "RMSE", main="Comparison of Republican Models")
+```
+Though each plot in @fig shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Republicans and full model for Democrats.
+
+```{r, echo=FALSE}
+best_dm_model = model_full_dm
+best_rp_model = lasso_model_rp
+
+dm_predictions_sqrt <- predict(best_dm_model, newdata = dm_test)
+rp_predictions_sqrt <- predict(best_rp_model, newdata = rp_test)
+
+
+# undo sqrt transformation
+dm_predictions_original <- dm_predictions_sqrt^2
+rp_predictions_original <- rp_predictions_sqrt^2
+
+dm_true_Y <- dm_test$margin_of_victory
+rp_true_Y <- rp_test$margin_of_victory
+
+dm_rmse <- sqrt(mean((dm_predictions_original - dm_true_Y)^2))
+rp_rmse <- sqrt(mean((rp_predictions_original - rp_true_Y)^2))
+
+# r-squared
+dm_r_squared <- cor(dm_predictions_original, dm_true_Y)^2
+rp_r_squared <- cor(rp_predictions_original, rp_true_Y)^2
+
+cat("The Final Test Set RMSE for Democrat:", round(dm_rmse,4), "\n")
+cat("The Final Test Set R-squared for Democrat:", round(dm_r_squared,4), "\n")
+
+cat("The Final Test Set RMSE for Republican:", round(rp_rmse,4), "\n")
+cat("The Final Test Set R-squared for Republican:", round(rp_r_squared,4), "\n")
+```
 
 # Discussion
 

@@ -321,3 +321,26 @@ par(mfrow = c(1, 2))
 # Visualize the comparison (lower box means better RMSE)
 bwplot(results_dm, metric = "RMSE")
 bwplot(results_rp, metric = "RMSE")
+
+best_dm_model = model_full_dm
+best_rp_model = lasso_model_rp
+
+dm_predictions_sqrt <- predict(best_dm_model, newdata = dm_test)
+rp_predictions_sqrt <- predict(best_rp_model, newdata = rp_test)
+
+
+# undo sqrt transformation
+dm_predictions_original <- dm_predictions_sqrt^2
+rp_predictions_original <- rp_predictions_sqrt^2
+
+dm_true_Y <- dm_test$margin_of_victory
+rp_true_Y <- rp_test$margin_of_victory
+
+dm_rmse <- sqrt(mean((dm_predictions_original - dm_true_Y)^2))
+rp_rmse <- sqrt(mean((rp_predictions_original - rp_true_Y)^2))
+
+# r-squared
+dm_r_squared <- cor(dm_predictions_original, dm_true_Y)^2
+rp_r_squared <- cor(rp_predictions_original, rp_true_Y)^2
+
+
