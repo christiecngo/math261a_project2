@@ -201,7 +201,7 @@ transformed_model_poly_rp <- lm(
 ```
 
 
-After this transformation, the diagnostic plot now shows a curve in the residuals vs. fitted plot, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to highlight curvature. The predictors that showed some curvature for mainly improved for the Democratic subset after including splines terms of degrees of freedom 3. This is highlighted in (@fig) in the blue Q-Q plot, where the tail ends fall much more closely to the 45 degree line (representing a good fit with the theoretical distribution chosen).
+After this transformation, the diagnostic plot now shows a curve in the residuals vs. fitted plot, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to highlight curvature. The predictors that showed some curvature for mainly improved for the Democratic subset after including B-splines terms of degrees of freedom 3. This is highlighted in (@fig) in the blue Q-Q plot, where the tail ends fall much more closely to the 45 degree line (representing a good fit with the theoretical distribution chosen).
 
 The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern (upper right) in the residual vs. fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms.
 
@@ -331,11 +331,66 @@ par(mfrow = c(2, 1))
 bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
 bwplot(results_rp, metric = "RMSE", main="Comparison of Republican Models")
 ```
-Though each plot in @fig shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Republicans and full model for Democrats.
+Though each plot in @fig shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans.
 
-```{r, echo=FALSE}
+### Slope Interpretations
+
+#### Democrat
+Variables "zeroed" out by LASSO are considered not important for our response variable.
+
+Key Variables:
+
+* The estimated coefficient for "senate" is 0.01563, representing an expected increase of 0.01563 percentage points in the margin of victory for senators, when compared to those in the House of Representatives, holding all other variables constant.
+
+* The estimated coefficient for "female" is -0.0148, representing an expected decrease of 0.0148 percentage points in the margin of victory for female officials, when compared to male, holding all other variables constant.
+
+* The estimated coefficient for "age 45 to 64" is 0.0155, representing an expected increase of 0.0155 percentage points in the margin of victory given a 1 percentage point increase in constituents age 45 to 64, holding all other variables constant.
+
+* The estimated coefficient for percentage "married" is -0.0743, representing an expected decrease of 0.0743 percentage points in the margin of victory given a 1 percentage point increase in constituents who are married, holding all other variables constant.
+
+
+* The estimated coefficient for percentage "white" is -0.0501, representing an expected decrease of 0.0501 percentage points in the margin of victory given a 1 percentage point increase in constituents who are white, holding all other variables constant. The same interpretations follow for the other race categories.
+
+* The estimated coefficient for percentage "bachelor degree" is 0.0596, representing an expected increase of 0.0596 percentage points in the margin of victory given a 1 percentage point increase in constituents who have obtained a bachelor degree, holding all other variables constant.
+
+The same interpretations follow for the rest of the variables.
+
+```{r}
+best_lambda <- lasso_model_dm$bestTune$lambda
+as.matrix(coef(lasso_model_dm$finalModel, s = best_lambda))
+```
+#### Republican
+
+Key Variables:
+
+* The estimated coefficient for "lgbt" is -1.601e-01, representing an expected decrease of 1.601e-01 percentage points in the margin of victory for officials part of the LGBTQ+ community, when compared to those who are not, holding all other variables constant.
+
+
+* The estimated coefficient for "district ideology" is 1.871e-01, representing an expected increase of 1.871e-01 percentage points in the margin of victory for senators, given a 1 point increase on the political spectrum (moving towards conservative end), holding all other variables constant.
+
+
+* The estimated coefficient for "age 45 to 64" is -8.020e-03, representing an expected decrease of 8.020e-03 percentage points in the margin of victory given a 1 percentage point increase in constituents age 45 to 64, holding all other variables constant.
+
+
+* The estimated coefficient for percentage "married" is 8.943e-03, representing an expected increase of 8.943e-03 percentage points in the margin of victory given a 1 percentage point increase in constituents who are married, holding all other variables constant.
+
+
+* The estimated coefficient for percentage "white" is 3.370e-03, representing an expected increase of 3.370e-03 percentage points in the margin of victory given a 1 percentage point increase in constituents who are white, holding all other variables constant. The same interpretations follow for the other race categories.
+
+
+The same interpretations follow for the rest of the variables (note: Evangelical Protestants and same-sex married couples are both singular, which is reasonable due to religious beliefs opposing SSMC; proportion with a bachelor degree or in rural living are also singular). 
+
+```{r}
+summary(model_full_rp)
+```
+
+
+### Testing Results
+
+```{r, echo=FALSE, results=FALSE}
 best_dm_model = model_full_dm
 best_rp_model = lasso_model_rp
+
 
 dm_predictions_sqrt <- predict(best_dm_model, newdata = dm_test)
 rp_predictions_sqrt <- predict(best_rp_model, newdata = rp_test)
@@ -361,7 +416,14 @@ cat("The Final Test Set R-squared for Democrat:", round(dm_r_squared,4), "\n")
 cat("The Final Test Set RMSE for Republican:", round(rp_rmse,4), "\n")
 cat("The Final Test Set R-squared for Republican:", round(rp_r_squared,4), "\n")
 ```
+| Subset | Best Model | Validation Median RMSE | Test RMSE | Test R-Squared |
+|---------|:-----|------:|:------:|:------:|
+| Republican      | Full   |    0.1603866  |   0.1625   | 0.4517
+| Democratic     | LASSO  |   0.1651067   |  0.1757   | 0.4904 
+
 
 # Discussion
+
+Ultimately, the best models and Democratic and Republican elected officials are different, with the Democratic model having a higher $R^2$.
 
 # References
