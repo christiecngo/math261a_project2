@@ -109,7 +109,7 @@ Prior to any modeling implementations, variables revealing election outcomes or 
 ### Full Model and Diagnostics
 Through implementing multiple linear regression, our goal is to predict the margin of victory of a congressperson based on their personal demographic information and that of their constituents. The general formula for multiple linear regression is:
 
-$$\bf{Y}_{nx1} =  \bf{X}_{nxp} \boldsymbol{\beta}_{px1}+\epsilon_{nx1}$$
+$$\boldsymbol{Y}_{nx1} =  \boldsymbol{X}_{nxp} \boldsymbol{\beta}_{px1}+\epsilon_{nx1}$$
 $Y$ represents the response vector while $\beta$ is the coefficients associated with the $X$ predictor matrix. $\epsilon$ corresponds to the noise in the data due to measurement error or true variations. 
 
 #### Response Variable
