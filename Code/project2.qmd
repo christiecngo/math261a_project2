@@ -124,7 +124,7 @@ $$\boldsymbol{Y}_{nx1} =  \boldsymbol{X}_{nxp} \boldsymbol{\beta}_{px1}+\epsilon
 $Y$ represents the response vector while $\beta$ is the coefficients associated with the $X$ predictor matrix. $\epsilon$ corresponds to the noise in the data due to measurement error or true variations. 
 
 #### Response Variable
-The response variable is the "margin of victory column" for each elected official's race. This ranges from 0.0148\% to 99.6887\%, with a median of 26.2647\%, after removing uncontested elections. 
+The response variable is the "margin of victory" column for each elected official's race. The percentage points range from 0.0148\% to 99.6887\%, with a median of 26.2647\%, after removing uncontested elections. 
 
 #### Key Predictors
 The following predictors remained after screening for variables that contained outcome information and athlete bill-specific columns.
@@ -154,7 +154,7 @@ names(dm)[c(1:7,9:21)]
 
 The full model includes all predictor variables and serves as a baseline comparison to subsets chosen by variable selection techniques. Data transformations were performed based on diagnostic plots using this comprehensive model.
 
-For precise confidence intervals and accurate coefficient estimates, the following assumptions of the ordinary least squares linear regression should hold to guaranteed the best linear unbiased estimators (BLUE):
+If our goal had extended to inference with a need for precise confidence intervals and accurate coefficient estimates, the following assumptions of the ordinary least squares linear regression should hold to guaranteed the best linear unbiased estimators (BLUE):
 
 * Linearity: implies that a linear regression model is a good choice for representing the data (response Y versus predictor(s) X)
 
@@ -177,7 +177,7 @@ plot(allvars_rp, which = 1:2, col = "red")
 
 ### Data Transformations
 
-Due to violation of equal variance, shown clearly in the Q-Q plot, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets.
+Due to violation of equal variance, shown clearly in the Q-Q plot, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets. This is chosen based on the 
 
 ```{r, results=FALSE, echo=FALSE, eval = FALSE}
 library(MASS)
@@ -186,7 +186,7 @@ boxcox(allvars_rp)
 boxcox(allvars_dm)
 ```
 
-```{r, echo=FALSE, results=FALSE}
+```{r, echo=FALSE, results=FALSE, warning=FALSE}
 library(dplyr)
 dm <- dm %>%
   mutate(margin_of_victory_sqrt = sqrt(margin_of_victory))
@@ -216,13 +216,14 @@ transformed_model_poly_rp <- lm(
   data = rp)
 ```
 
-Quick Note: After this transformation, a curve appeared in diagnostic plots for residuals versus fitted, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to pinpoint curvature. LOWESS is a method to draw a smoothed line at localized regions. The predictors that showed some curvature for mainly improved for the Democratic subset after including B-Splines terms of degrees of freedom 3. B-Splines is another method for drawing a smooth curve, except using polynomial segments instead. This is highlighted in (@fig) in the blue Q-Q plot, where the tail ends fall much more closely to the 45 degree line (representing a good fit with the theoretical distribution chosen).
+Quick Note: After this transformation, a curve still appeared in diagnostic plots for residuals versus fitted, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to pinpoint curvature. LOWESS is a method to draw a smoothed line at localized regions. The predictors that showed some curvature for mainly improved for the Democratic subset after including B-Splines terms of degrees of freedom 3. B-Splines is another method for drawing a smooth curve, except using polynomial segments instead. 
 
-The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern (upper right) in the residual versus fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms. We attempted a few pairings for interaction terms but did not see this issue resolve.
+The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern in the residual versus fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms. We attempted a few pairings for interaction terms but did not see this issue resolve.
 
-### Final Diagnostic Plots
+Due to the lack of normality in the diagnostic plots, we are unable to construct prediction intervals for point estimates of our test set. 
 
-```{r, echo=FALSE}
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results=FALSE}
 #| fig-width: 8
 #| fig-height: 6
 par(mfrow = c(2, 2))
@@ -253,7 +254,9 @@ rp_test <- testing(rp_split)
 
 ### Model Comparisons (Variable Selection Techniques)
 
-With the full model as the baseline, we used both LASSO and stepwise sequential search techniques to perform variable selection within each of the 10 folds of our training+validation set. The metric for selection was Root Mean Square Error (RMSE), which is the square root of the mean of differences between the predicted and observed values for the response variable. 
+With the full model as the baseline, we used both LASSO and stepwise sequential search techniques to perform variable selection within each of the 10 folds of our training+validation set. The metric for selection was Root Mean Square Error (RMSE) = $\sqrt{\frac{1}{n} \sum^n_{i=1} (y_i- \hat{y_i})^2}$, which is the square root of the mean of differences between the predicted and observed values for the response variable. 
+
+For more interpretability without consideration of the scale, we will also observe the $R^2$ value, which represents the proportion of variance in the data explained by the model.
 
 LASSO is a regularization method that seeks to minimize a penalty term, $\lambda \sum |\beta_j|$. This shrinks the less important estimated coefficients to 0. For stepwise search, we fit a simple linear regression model for each of the $P-1$ predictors and add this predictor to the final model if it exceeds a predetermined threshold.
 
@@ -352,6 +355,7 @@ par(mfrow = c(2, 1))
 bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
 bwplot(results_rp, metric = "RMSE", main="Comparison of Republican Models")
 ```
+
 Though each plot in @fig shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans.
 
 ### Slope Interpretations
@@ -361,18 +365,18 @@ Variables "zeroed" out by LASSO are considered not important for our response va
 
 Key Variables:
 
-* The estimated coefficient for "senate" is 0.01563, representing an expected increase of 0.01563 percentage points in the margin of victory for senators, when compared to those in the House of Representatives, holding all other variables constant.
+* The estimated coefficient for "senate" is 0.01563, representing an expected increase of 0.01563 percentage points in the square root of the margin of victory for senators, when compared to those in the House of Representatives, holding all other variables constant.
 
-* The estimated coefficient for "female" is -0.0148, representing an expected decrease of 0.0148 percentage points in the margin of victory for female officials, when compared to male, holding all other variables constant.
+* The estimated coefficient for "female" is -0.0148, representing an expected decrease of 0.0148 percentage points in the square root of the margin of victory for female officials, when compared to male, holding all other variables constant.
 
-* The estimated coefficient for "age 45 to 64" is 0.0155, representing an expected increase of 0.0155 percentage points in the margin of victory given a 1 percentage point increase in constituents age 45 to 64, holding all other variables constant.
+* The estimated coefficient for "age 45 to 64" is 0.0155, representing an expected increase of 0.0155 percentage points in the square root of the margin of victory given a 1 percentage point increase in constituents age 45 to 64, holding all other variables constant.
 
-* The estimated coefficient for percentage "married" is -0.0743, representing an expected decrease of 0.0743 percentage points in the margin of victory given a 1 percentage point increase in constituents who are married, holding all other variables constant.
+* The estimated coefficient for percentage "married" is -0.0743, representing an expected decrease of 0.0743 percentage points in the square root of the margin of victory given a 1 percentage point increase in constituents who are married, holding all other variables constant.
 
 
-* The estimated coefficient for percentage "white" is -0.0501, representing an expected decrease of 0.0501 percentage points in the margin of victory given a 1 percentage point increase in constituents who are white, holding all other variables constant. The same interpretations follow for the other race categories.
+* The estimated coefficient for percentage "white" is -0.0501, representing an expected decrease of 0.0501 percentage points in the square root of the margin of victory given a 1 percentage point increase in constituents who are white, holding all other variables constant. The same interpretations follow for the other race categories.
 
-* The estimated coefficient for percentage "bachelor degree" is 0.0596, representing an expected increase of 0.0596 percentage points in the margin of victory given a 1 percentage point increase in constituents who have obtained a bachelor degree, holding all other variables constant.
+* The estimated coefficient for percentage "bachelor degree" is 0.0596, representing an expected increase of 0.0596 percentage points in the square root of the margin of victory given a 1 percentage point increase in constituents who have obtained a bachelor degree, holding all other variables constant.
 
 The same interpretations follow for the rest of the variables.
 
@@ -380,6 +384,7 @@ The same interpretations follow for the rest of the variables.
 library(broom)
 library(dplyr)
 library(tibble)
+library(knitr)
 
 tidy.train <- function(x, ...) {
   best_lambda <- x$bestTune$lambda
@@ -394,32 +399,39 @@ tidy.train <- function(x, ...) {
     filter(estimate != 0)
 }
 
-tidy(lasso_model_dm)
+
+tidy_coefs <- tidy.train(lasso_model_dm)
+kable(tidy_coefs,
+      caption = paste("Lasso Model Coefficients at Optimal Lambda (",
+                      round(lasso_model_dm$bestTune$lambda, 4), 
+                      ")", sep = ""),
+      digits = 6,
+      row.names = FALSE)
 ```
 
 #### Republican
 
 Key Variables:
 
-* The estimated coefficient for "lgbt" is -1.601e-01, representing an expected decrease of 1.601e-01 percentage points in the margin of victory for officials part of the LGBTQ+ community, when compared to those who are not, holding all other variables constant.
+* The estimated coefficient for "lgbt" is -1.601e-01, representing an expected decrease of 1.601e-01 percentage points in the square root of margin of victory for officials part of the LGBTQ+ community, when compared to those who are not, holding all other variables constant.
 
 
-* The estimated coefficient for "district ideology" is 1.871e-01, representing an expected increase of 1.871e-01 percentage points in the margin of victory for senators, given a 1 point increase on the political spectrum (moving towards conservative end), holding all other variables constant.
+* The estimated coefficient for "district ideology" is 1.871e-01, representing an expected increase of 1.871e-01 percentage points in the square root of the margin of victory for senators, given a 1 point increase on the political spectrum (moving towards conservative end), holding all other variables constant.
 
 
-* The estimated coefficient for "age 45 to 64" is -8.020e-03, representing an expected decrease of 8.020e-03 percentage points in the margin of victory given a 1 percentage point increase in constituents age 45 to 64, holding all other variables constant.
+* The estimated coefficient for "age 45 to 64" is -8.020e-03, representing an expected decrease of 8.020e-03 percentage points in square root of the margin of victory given a 1 percentage point increase in constituents age 45 to 64, holding all other variables constant.
 
 
-* The estimated coefficient for percentage "married" is 8.943e-03, representing an expected increase of 8.943e-03 percentage points in the margin of victory given a 1 percentage point increase in constituents who are married, holding all other variables constant.
+* The estimated coefficient for percentage "married" is 8.943e-03, representing an expected increase of 8.943e-03 percentage points in square root of the margin of victory given a 1 percentage point increase in constituents who are married, holding all other variables constant.
 
 
-* The estimated coefficient for percentage "white" is 3.370e-03, representing an expected increase of 3.370e-03 percentage points in the margin of victory given a 1 percentage point increase in constituents who are white, holding all other variables constant. The same interpretations follow for the other race categories.
+* The estimated coefficient for percentage "white" is 3.370e-03, representing an expected increase of 3.370e-03 percentage points in square root of the margin of victory given a 1 percentage point increase in constituents who are white, holding all other variables constant. The same interpretations follow for the other race categories.
 
 
 The same interpretations follow for the rest of the variables (note: Evangelical Protestants and same-sex married couples are both singular, which is reasonable due to religious beliefs opposing SSMC; an interaction term was also added for this pair of variables. The proportion with a bachelor degree or in rural living are also singular). 
 
 ```{r, echo=FALSE}
-coef(summary(model_full_rp))[, 1]
+kable(coef(summary(model_full_rp))[, 1])
 ```
 
 
