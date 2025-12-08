@@ -5,7 +5,7 @@ author: "Christie Ngo"
 thanks: "Project repository available at: [https://github.com/christiecngo/math261a_project2](https://github.com/christiecngo/math261a_project2)."
 date: today
 date-format: long
-abstract: "Write"
+abstract: "Outcomes of political elections in the United States depend on a multitude of influences, ranging from social, economic, political issues that constituents prioritize. This study compares accuracy of multiple regression models, predicting margin of victory of elections based on demographic information. Subsets of all variables were chosen using variable selection techniques and cross-validated using Root Mean Squared Error (RMSE) for Democrats versus Republican elected officials in Congress. Model results indicated moderate explanatory power, with a limited ability to capture complex patterns in voting data. Future research of prediction using linear regression include incorporation of advanced variable transformations, impactful variable interactions, and Bayesian applications."
 format: 
   pdf:
     fig-pos: "H"
@@ -96,8 +96,9 @@ allvars_rp <- lm(margin_of_victory ~ ., data = rp)
 
 # Introduction
 
-	In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin foreshadows their ability to pursue policies (@ucsb). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s (@kimandzilinsky) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
-	However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. In this paper, we will construct a multiple linear regression model to predict the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
+In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin foreshadows their ability to pursue policies (@ucsb). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s (@kimandzilinsky) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
+
+However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. In this paper, we will construct a multiple linear regression model to predict the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
 
 
 # Data
@@ -109,6 +110,9 @@ The dataset is curated from Kimberly Martin’s analysis of voting trends on sta
 
 ### Programming Language
 This analysis uses @R Programming software and the following packages: dplyr, MASS, caret, glmnet, and tidymodels.
+
+@openai_chatgpt was also used for guidance extending variable selection to cross validation and generating cleaner figures.
+
 
 ### Data Cleaning
 Prior to any modeling implementations, variables revealing election outcomes or irrelevant bill information will be omitted. We excluded any observations with a margin of victory equal to 1 as they are uncontested elections and 0 as these are inaccurate entries. We also dropped several rows with any omitted values that were most likely missing at random. After subsetting by party, this resulted in 700 observations for Democrats and 1760 for Republicans. Despite a smaller data size for Democrats, splitting this cohort will best serve our goal of observing prediction accuracy by party.
@@ -152,7 +156,7 @@ The full model includes all predictor variables and serves as a baseline compari
 
 For precise confidence intervals and accurate coefficient estimates, the following assumptions of the ordinary least squares linear regression should hold to guaranteed the best linear unbiased estimators (BLUE):
 
-* Linearity: implies that a linear regression model is a good choice for representing the data (response Y vs. predictor(s) X)
+* Linearity: implies that a linear regression model is a good choice for representing the data (response Y versus predictor(s) X)
 
 * Independence of Errors: ensures accurate confidence intervals and p-values based reliable calculations of standard errors.
 
@@ -164,7 +168,7 @@ For precise confidence intervals and accurate coefficient estimates, the followi
 #| fig-width: 8
 #| fig-height: 6
 #| echo: false
-#| fig-cap: "The left column represents the residual vs. fitted plot while the right covers the quantile-quantile plot, with blue for Democrat and red for Republican. Primarily in the Q-Q plot, the tail ends show deviation from the dotted line representing a perfect fit with the theoretical distribution. Both subsets violate the homoskedasticity assumption."
+#| fig-cap: "The left column represents the residual versus fitted plot while the right covers the quantile-quantile plot, with blue for Democrat and red for Republican. Primarily in the Q-Q plot, the tail ends show deviation from the dotted line representing a perfect fit with the theoretical distribution. Both subsets violate the homoskedasticity assumption."
 par(mfrow = c(2, 2))
 plot(allvars_dm, which = 1:2, col = "blue")
 plot(allvars_rp, which = 1:2, col = "red")
@@ -175,7 +179,7 @@ plot(allvars_rp, which = 1:2, col = "red")
 
 Due to violation of equal variance, shown clearly in the Q-Q plot, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets.
 
-```{r, results=FALSE, echo=FALSE}
+```{r, results=FALSE, echo=FALSE, eval = FALSE}
 library(MASS)
 
 boxcox(allvars_rp)
@@ -195,9 +199,9 @@ allvars_rp <- lm(margin_of_victory_sqrt ~ ., data = rp)
 
 
 # residual plots now show a U-curve
-plot(allvars_dm, ,which = 1:2, main="Diagnostic Plots for Democrat Full Model")
+# plot(allvars_dm, ,which = 1:2, main="Diagnostic Plots for Democrat Full Model")
 
-plot(allvars_rp, which=1:2, main="Diagnostic Plots for Republican Full Model")
+# plot(allvars_rp, which=1:2, main="Diagnostic Plots for Republican Full Model")
 
 library(splines)
 
@@ -212,9 +216,9 @@ transformed_model_poly_rp <- lm(
   data = rp)
 ```
 
-Quick Note: After this transformation, a curve appeared in diagnostic plots for residuals vs. fitted, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to pinpoint curvature. LOWESS is a method to draw a smoothed line at localized regions. The predictors that showed some curvature for mainly improved for the Democratic subset after including B-Splines terms of degrees of freedom 3. B-Splines is another method for drawing a smooth curve, except using polynomial segments instead. This is highlighted in (@fig) in the blue Q-Q plot, where the tail ends fall much more closely to the 45 degree line (representing a good fit with the theoretical distribution chosen).
+Quick Note: After this transformation, a curve appeared in diagnostic plots for residuals versus fitted, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to pinpoint curvature. LOWESS is a method to draw a smoothed line at localized regions. The predictors that showed some curvature for mainly improved for the Democratic subset after including B-Splines terms of degrees of freedom 3. B-Splines is another method for drawing a smooth curve, except using polynomial segments instead. This is highlighted in (@fig) in the blue Q-Q plot, where the tail ends fall much more closely to the 45 degree line (representing a good fit with the theoretical distribution chosen).
 
-The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern (upper right) in the residual vs. fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms. We attempted a few pairings for interaction terms but did not see this issue resolve.
+The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern (upper right) in the residual versus fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms. We attempted a few pairings for interaction terms but did not see this issue resolve.
 
 ### Final Diagnostic Plots
 
@@ -341,8 +345,8 @@ results_rp <- resamples(list(
 Below are the boxplot comparisons of the results of the RMSE for the full, stepwise selected, and LASSO models:
 
 ```{r, echo=FALSE}
-#| fig-width: 8
-#| fig-height: 6
+#| fig-width: 4
+#| fig-height: 3
 par(mfrow = c(2, 1))
 
 bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
@@ -372,7 +376,7 @@ Key Variables:
 
 The same interpretations follow for the rest of the variables.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
 library(broom)
 library(dplyr)
 library(tibble)
@@ -392,6 +396,7 @@ tidy.train <- function(x, ...) {
 
 tidy(lasso_model_dm)
 ```
+
 #### Republican
 
 Key Variables:
@@ -414,7 +419,7 @@ Key Variables:
 The same interpretations follow for the rest of the variables (note: Evangelical Protestants and same-sex married couples are both singular, which is reasonable due to religious beliefs opposing SSMC; an interaction term was also added for this pair of variables. The proportion with a bachelor degree or in rural living are also singular). 
 
 ```{r, echo=FALSE}
-summary(model_full_rp)
+coef(summary(model_full_rp))[, 1]
 ```
 
 
@@ -464,7 +469,7 @@ Democrats had a higher proportion of the variance explained by the multiple line
 
 ### Limitations
 
-With a larger subset for both parties, there is a lower risk of overfitting and would have allowed us to implement hyperparameter tuning for a more optimal model. A larger training set would also be beneficial to recognizing complex patterns between the predictors and response. In both cohorts, there were issues with a linear pattern appearing in the residuals vs. fitted plot, indicating a missing term (relevant predictor or useful interaction) and preventing accurate construction of prediction intervals. Issues with lack of constant variance was present as well, more notably for the Republican cohort. A more extensive exploration of this political data may resolve these linear violations. 
+With a larger subset for both parties, there is a lower risk of overfitting and would have allowed us to implement hyperparameter tuning for a more optimal model. A larger training set would also be beneficial to recognizing complex patterns between the predictors and response. In both cohorts, there were issues with a linear pattern appearing in the residuals versus fitted plot, indicating a missing term (relevant predictor or useful interaction) and preventing accurate construction of prediction intervals. Issues with lack of constant variance was present as well, more notably for the Republican cohort. A more extensive exploration of this political data may resolve these linear violations. 
 
 ### Future Directions
 
