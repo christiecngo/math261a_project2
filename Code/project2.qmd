@@ -9,6 +9,7 @@ abstract: "Outcomes of political elections in the United States depend on a mult
 format: 
   pdf:
     fig-pos: "H"
+bibliography: references.bib
 number-sections: true
 ---
 
@@ -96,14 +97,14 @@ allvars_rp <- lm(margin_of_victory ~ ., data = rp)
 
 # Introduction
 
-In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin foreshadows their ability to pursue policies (@ucsb). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s (@kimandzilinsky) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
+In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin critically foreshadows their ability to pursue policies (@WoolleyPeters2024). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s (@KimZilinsky2024) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
 
-However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. In this paper, we will construct a multiple linear regression model to predict the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
+However, historically, linear regression methods have not been widely utilized for the purpose of determining whether there will be a close-call election. Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. In this paper, we will construct a multiple linear regression model to assess accuracy of predictions on the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
 
 
 # Data
 
-The dataset is curated from Kimberly Martin’s analysis of voting trends on state legislation related to the transgender athletes ban in sports with one bill kept per state, spanning 2020-2023. There are 29 different states with related bills in total with each row representing individual congressional members. Martin tracks relevant bills based on the Movement Advancement Project (MAP) and the Human Rights Campaign (HRC). Though this dataset is originally intended to study trends specific to the transgender athlete ban in sports, it provides the most reliable and comprehensive demographic characteristics of elected officials. The complete dataset contains 52 columns and 3654 rows in total. There is at least one Democratic and one Republican senator or representative included for each of the 29 states. Key features include binary variables about representatives, such as gender, race, and sexual orientation. Additional information includes the proportions of religious, racial, age, marital status, and educational categories for each official’s constituents. 
+The dataset is curated from Kimberly Martin’s analysis of voting trends on state legislation related to the transgender athletes ban in sports with one bill kept per state, spanning 2020-2023 on @HarvardDataverse. There are 29 different states with related bills in total with each row representing individual congressional members. Martin tracks relevant bills based on the Movement Advancement Project (MAP) and the Human Rights Campaign (HRC). Though this dataset is originally intended to study trends specific to the transgender athlete ban in sports, it provides the most reliable and comprehensive demographic characteristics of elected officials. The complete dataset contains 52 columns and 3654 rows in total. There is at least one Democratic and one Republican senator or representative included for each of the 29 states. Key features include binary variables about representatives, such as gender, race, and sexual orientation. Additional information includes the proportions of religious, racial, age, marital status, and educational categories for each official’s constituents. 
 
 
 # Method
@@ -164,7 +165,7 @@ If our goal had extended to inference with a need for precise confidence interva
 
 * Equal Variance of Errors: implies that the estimates for the coefficients are the most optimal, as standard errors will be accurate.
 
-```{r}
+```{r fig-diagnostic}
 #| fig-width: 8
 #| fig-height: 6
 #| echo: false
@@ -177,16 +178,16 @@ plot(allvars_rp, which = 1:2, col = "red")
 
 ### Data Transformations
 
-Due to violation of equal variance, shown clearly in the Q-Q plot, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets. This is chosen based on the 
+Due to violation of equal variance, shown clearly in the Q-Q plot of @fig-diagnostic, we will first transform the data using Box-Cox transformations. Based on commonly used $\lambda$ parameters, we find that the square root transformation of the response variable is best for both the Democratic and Republican subsets. This is chosen based on the $\lambda$ value that minimizes residual variance.
 
-```{r, results=FALSE, echo=FALSE, eval = FALSE}
+```{r, results=FALSE, echo=FALSE, eval = FALSE, warning=FALSE, message=FALSE}
 library(MASS)
 
 boxcox(allvars_rp)
 boxcox(allvars_dm)
 ```
 
-```{r, echo=FALSE, results=FALSE, warning=FALSE}
+```{r, echo=FALSE, results=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
 dm <- dm %>%
   mutate(margin_of_victory_sqrt = sqrt(margin_of_victory))
@@ -347,16 +348,18 @@ results_rp <- resamples(list(
 
 Below are the boxplot comparisons of the results of the RMSE for the full, stepwise selected, and LASSO models:
 
-```{r, echo=FALSE}
+```{r fig-boxplot, echo=FALSE}
 #| fig-width: 4
 #| fig-height: 3
+#| fig-cap: "Boxplots for Distributions of Cross-Validation (k=10) RMSE. Democrat (top) and Republican (bottom)"
+
 par(mfrow = c(2, 1))
 
 bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
 bwplot(results_rp, metric = "RMSE", main="Comparison of Republican Models")
 ```
 
-Though each plot in @fig shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans.
+Though each plot in @fig-boxplot shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans.
 
 ### Slope Interpretations
 
@@ -386,6 +389,8 @@ library(dplyr)
 library(tibble)
 library(knitr)
 
+
+
 tidy.train <- function(x, ...) {
   best_lambda <- x$bestTune$lambda
     coefs <- coef(x$finalModel, s = best_lambda)
@@ -404,7 +409,7 @@ tidy_coefs <- tidy.train(lasso_model_dm)
 kable(tidy_coefs,
       caption = paste("Lasso Model Coefficients at Optimal Lambda (",
                       round(lasso_model_dm$bestTune$lambda, 4), 
-                      ")", sep = ""),
+                      ") For Democratic Officials", sep = ""),
       digits = 6,
       row.names = FALSE)
 ```
@@ -431,7 +436,7 @@ Key Variables:
 The same interpretations follow for the rest of the variables (note: Evangelical Protestants and same-sex married couples are both singular, which is reasonable due to religious beliefs opposing SSMC; an interaction term was also added for this pair of variables. The proportion with a bachelor degree or in rural living are also singular). 
 
 ```{r, echo=FALSE}
-kable(coef(summary(model_full_rp))[, 1])
+kable(coef(summary(model_full_rp))[, 1], caption="Full Model Estimated Coefficients for Republican Officials")
 ```
 
 
@@ -466,6 +471,9 @@ cat("The Final Test Set R-squared for Democrat:", round(dm_r_squared,4), "\n")
 cat("The Final Test Set RMSE for Republican:", round(rp_rmse,4), "\n")
 cat("The Final Test Set R-squared for Republican:", round(rp_r_squared,4), "\n")
 ```
+
+Table 3: Summary of Best Model Performances on Both Subsets
+
 | Subset     | Best Model | Validation Median RMSE | Test RMSE | Test R-Squared |
 |------------|------------|------------------------|-----------|----------------|
 | Republican | Full       | 0.1603866              | 0.1625    | 0.4517         |
@@ -475,9 +483,11 @@ cat("The Final Test Set R-squared for Republican:", round(rp_r_squared,4), "\n")
 
 # Discussion
 
-Ultimately, the best models selected from variable selection techniques yielded decent explanatory power regarding the prediction of the margin of victory. The method that worked best for Democratic and Republican elected officials were different, with the Democratic model dropping 4 predictors (resulting in 18 distinct variables). The model for Republican officials had 20 distinct variables involved with main effect terms for proportion with a bachelor degree, proportion living in rural areas, rate of same-sex married couples, and rate of Evangelical Protestants being singular. 
+Ultimately, the best models selected from variable selection techniques yielded moderate explanatory power regarding the prediction of the margin of victory though far from capturing all the true relationships. The method that worked best for Democratic and Republican elected officials were different, with the Democratic model dropping 3 predictors (lgbt status of official, Hispanic race of official, and same sex marriage couple rate of constituents), resulting in 18 distinct variables. It is interesting to see variables associated with more liberal values such as LGBT status and the official being a person of color drop; it is possible that these factors are no longer as impactful when candidates may share the same traits (thus not defining) or the constituents do not consider these statuses positive nor negative. 
 
-Democrats had a higher proportion of the variance explained by the multiple linear regression model, with a higher $R^2$ value at $49.04$\% but higher RMSE. The Republican model had a slightly lower RMSE but lower $R^2$ of $45.17$\% variance explained by the model. This seems reasonable as the Republican cohort has over 1000 more observation points, allowing the model to learn more patterns but perhaps also has greater variation to identify.
+On the other hand, the model for Republican officials had not officially dropped any variables; 20 distinct variables were included along with the main effect terms for proportion. However, 4 predictors were singular: bachelor degree rate, proportion living in rural areas, rate of same-sex married couples, and rate of Evangelical Protestants. Again, this dependent relationship seems plausible due as conservative religious beliefs are often opposing SSMC; thus, rates of constituents in a same-sex marriage may be under-reported or the area may be deemed unwelcoming.
+
+Democrats had a higher proportion of the variance explained by the multiple linear regression model, with a higher $R^2$ value at $49.04$\% but higher RMSE. The Republican model had a slightly lower RMSE but lower $R^2$ of $45.17$\% variance explained by the model. This seems reasonable as the Republican cohort has over 1000 more observation points, allowing the model to learn more patterns but perhaps also has greater hidden variation to identify.
 
 ### Limitations
 
