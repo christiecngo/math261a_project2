@@ -5,7 +5,7 @@ An exploratory investigation on the relationship between a United States congres
 
 ## Data 
 
-**Example statement:** Data used in this project is obtained from [HARVARD Dataverse](https://dataverse.harvard.edu) who provide the data under the [Creative Commons Public Domain Dedication and License](https://creativecommons.org/publicdomain/zero/1.0/).
+Data used in this project is obtained from [HARVARD Dataverse](https://dataverse.harvard.edu) who provide the data under the [Creative Commons Public Domain Dedication and License](https://creativecommons.org/publicdomain/zero/1.0/).
 
 ## Organization
 
