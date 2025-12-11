@@ -5,7 +5,7 @@ author: "Christie Ngo"
 thanks: "Project repository available at: [https://github.com/christiecngo/math261a_project2](https://github.com/christiecngo/math261a_project2)."
 date: today
 date-format: long
-abstract: "Outcomes of political elections in the United States depend on a multitude of influences, ranging from social, economic, political issues that constituents prioritize. This study compares accuracy of multiple regression models, predicting margin of victory of elections based on demographic information. Subsets of all variables were chosen using variable selection techniques and cross-validated using Root Mean Squared Error (RMSE) for Democrats versus Republican elected officials in Congress. The best model for each party resulted in an R^2 of 0.45 (Democrat) and 0.49 (Republican), indicating moderate explanatory power and a limited ability to capture complex patterns in voting data. Future research of prediction using linear regression include incorporation of advanced variable transformations, impactful variable interactions, and Bayesian applications."
+abstract: "Outcomes of political elections in the United States depend on a multitude of influences, ranging from social, economic, political issues that constituents prioritize. This study compares accuracy of multiple regression models, predicting margin of victory of elections based on demographic information. Subsets of all variables were chosen using variable selection techniques and cross-validated using Root Mean Squared Error (RMSE) for Democrats versus Republican elected officials in Congress. The best model for each party resulted in an R^2 of 0.44 (Democrat) and 0.38 (Republican), indicating moderate explanatory power and a limited ability to capture complex patterns in voting data. Future works for predicting margin of victory using linear regression could include incorporation of advanced variable transformations, impactful variable interactions, and Bayesian applications."
 format: 
   pdf:
     fig-pos: "H"
@@ -97,9 +97,11 @@ allvars_rp <- lm(margin_of_victory ~ ., data = rp)
 
 # Introduction
 
-In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin critically foreshadows their ability to pursue policies (@WoolleyPeters2024). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Past literature, including Kim and Zilinksy’s (@KimZilinsky2024) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
+In the United States, there are elections when the two dominant political parties battle with a nail-biting victory and other times where one candidate wins by a landslide. For presidential elects, this margin critically foreshadows their ability to pursue policies (@WoolleyPeters2024). Voters have a civil duty to assess a candidate's stance on a plethora of social, economical, or political issues and decide who best represents their interests. Candidates who perform well may reflect a similar background that aligns with their district's communities or core beliefs. However, past literature, including Kim and Zilinksy’s (@KimZilinsky2024) Division Does Not Imply Predictability: Demographics Continue to Reveal Little About Voting and Partisanship, indicate a lack of predictive power for voting decisions based on social sorting and mass polarization (2022). The authors had used classification methods, including random forest and logistic regression, to predict presidential choice. 
 
-Past research has not typically utilized linear regression methods to determining occurrences of close-call elections. Using this less common method, we want to extend the research by asking: "Can the margin of victory be predicted solely based on the characteristics of the official and their constituents?" Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. In this paper, we will construct a multiple linear regression model to assess accuracy of predictions on the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
+Past research has not typically utilized linear regression methods to determining occurrences of close-call elections. Using this less common method, we want to extend the research by asking: "Can the margin of victory be predicted solely based on the characteristics of the official and their constituents?" Due to a greater data size, elected officials in Congress will be considered instead of presidential elections. 
+
+In this paper, we will construct a multiple linear regression model to assess accuracy of predictions on the margin of victory based on demographics of an elected government official’s constituents. Since we will subset the data by political party, the differences between the selected predictors in the best-performing models for Democratic versus Republican parties can be also compared.
 
 The paper is organized as follows:
 
@@ -134,7 +136,7 @@ This dataset is not representative of all Congress officials as they must have v
 ### Programming Language
 This analysis uses @R Programming software and the following packages: dplyr, MASS, caret, glmnet, and tidymodels.
 
-@openai_chatgpt was also used for guidance extending variable selection to cross validation and generating cleaner figures.
+@openai_chatgpt was also used for guidance on how to combine variable selection with cross validation and how to generate cleaner figures. 
 
 
 ### Data Cleaning
@@ -144,7 +146,7 @@ Prior to any modeling implementations, variables revealing election outcomes or 
 Through implementing multiple linear regression, our goal is to predict the margin of victory of a congressperson based on their personal demographic information and that of their constituents. The general formula for multiple linear regression is:
 
 $$\boldsymbol{Y}_{nx1} =  \boldsymbol{X}_{nxp} \boldsymbol{\beta}_{px1}+\epsilon_{nx1}$$
-$Y$ represents the response vector while $\beta$ is the coefficients associated with the $X$ predictor matrix. $\epsilon$ corresponds to the noise in the data due to measurement error or true variations. 
+$Y$ represents the response vector while $\beta$ is the coefficients associated with the $X$ predictor matrix. $\epsilon$ corresponds to the noise in the data due to measurement error or true variations. This is our baseline "full" model as it includes all predictions without interaction terms, capturing the main effects in a simple way.
 
 #### Response Variable
 The response variable is the "margin of victory" column for each elected official's race. The percentage points range from 0.0148\% to 99.6887\%, with a median of 26.2647\%, after removing uncontested elections. 
@@ -183,9 +185,10 @@ If our goal had extended to inference with a need for precise confidence interva
 
 * Independence of Errors: ensures accurate confidence intervals and p-values based reliable calculations of standard errors.
 
-* Normality of Errors: allows for valid hypothesis tests and confidence intervals constructed
+* Normality of Errors: allows for valid hypothesis tests and accurate confidence intervals to be constructed
 
 * Equal Variance of Errors: implies that the estimates for the coefficients are the most optimal, as standard errors will be accurate.
+
 
 ```{r fig-diagnostic}
 #| fig-width: 8
@@ -239,11 +242,11 @@ transformed_model_poly_rp <- lm(
   data = rp)
 ```
 
-Quick Note: After this transformation, a curve still appeared in diagnostic plots for residuals versus fitted, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to pinpoint curvature. LOWESS is a method to draw a smoothed line at localized regions. The predictors that showed some curvature for mainly improved for the Democratic subset after including B-Splines terms of degrees of freedom 3. B-Splines is another method for drawing a smooth curve, except using polynomial segments instead. 
+Quick Note: After this transformation, a curve still appeared in diagnostic plots for residuals versus fitted, indicating that there are higher polynomial terms for some predictors for both Republicans and Democrats. We used an iterative loop to plot residuals against each predictor and add a colored LOWESS plot to pinpoint curvature. LOWESS is a method to draw a smoothed line at localized regions. The predictors that showed some curvature mainly improved for the Democratic subset after including B-Splines terms of degrees of freedom 3. B-Splines is another method for drawing a smooth curve, except using polynomial segments instead. 
 
 The Republican subset requires more advanced exploration to resolve linear regression violations, but the analysis will proceed as is. Both subsets also revealed a segment with a linear pattern in the residual versus fitted plot, which could possibly be resolved using piecewise regression or adding interaction terms. We attempted a few pairings for interaction terms but did not see this issue resolve.
 
-Due to the lack of normality in the diagnostic plots, we are unable to construct prediction intervals for point estimates of our test set. 
+Due to the lack of normality in the diagnostic plots, even after transformations, we are unable to construct prediction intervals for the point estimates of our test set. 
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results=FALSE}
@@ -257,7 +260,7 @@ par(mfrow = c(1, 1))
 
 ### Splitting for Validation
 
-With the limited data size in mind, each subset was split into a training/validation and a testing set with the ratio of 80/20. Cross-validation is performed to select the best model before observing performance on the test set. 
+With the limited data size in mind, each subset was split into a training/validation and a testing set with the ratio of 80/20. Cross-validation was performed to select the best model before observing performance on the test set. 
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, result=FALSE}
 library("tidymodels")
@@ -286,6 +289,8 @@ LASSO is a regularization method that seeks to minimize a penalty term, $\lambda
 ```{r, echo=FALSE, output=FALSE, warning=FALSE}
 library(glmnet)
 library(caret)
+
+set.seed(93)
 dm_final_formula = margin_of_victory_sqrt ~ bs(SSMC, df=3) + bs(EP, df=3) +  . - margin_of_victory
 rp_final_formula = margin_of_victory_sqrt ~ bs(pctbachelordeg, df=3) + bs(rural,df=3) + 
     bs(SSMC,df=3) + bs(EP,df=3) + SSMC*EP + . - margin_of_victory
@@ -366,7 +371,7 @@ results_rp <- resamples(list(
 ```
 
 
-# Result
+# Results
 
 Below are the boxplot comparisons of the results of the RMSE for the full, stepwise selected, and LASSO models:
 
@@ -381,7 +386,7 @@ bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
 bwplot(results_rp, metric = "RMSE", main="Comparison of Republican Models")
 ```
 
-Though each plot in @fig-boxplot shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans.
+Though each plot in @fig-boxplot shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans. The stepwise variable selection performed the most poorly for both, especially for Republicans.
 
 ### Slope Interpretations
 
@@ -498,8 +503,8 @@ Table 3: Summary of Best Model Performances on Both Subsets
 
 | Subset     | Best Model | Validation Median RMSE | Test RMSE | Test R-Squared |
 |------------|------------|------------------------|-----------|----------------|
-| Republican | Full       | 0.1603866              | 0.1625    | 0.4517         |
-| Democratic | LASSO      | 0.1651067              | 0.1757    | 0.4904         |
+| Republican | Full       | 0.1711               | 0.1711     | 0.3784          |
+| Democratic | LASSO      | 0.173               | 0.1757    | 0.4424          |
 
 
 
@@ -509,11 +514,11 @@ Ultimately, the best models selected from variable selection techniques yielded 
 
 On the other hand, the model for Republican officials had not officially dropped any variables; 20 distinct variables were included along with the main effect terms for proportion. However, 4 predictors were singular: bachelor degree rate, proportion living in rural areas, rate of same-sex married couples, and rate of Evangelical Protestants. Again, this dependent relationship seems plausible due as conservative religious beliefs are often opposing SSMC; thus, rates of constituents in a same-sex marriage may be under-reported or the area may be deemed unwelcoming.
 
-Democrats had a higher proportion of the variance explained by the multiple linear regression model, with a higher $R^2$ value at $49.04$\% but higher RMSE. The Republican model had a slightly lower RMSE but lower $R^2$ of $45.17$\% variance explained by the model. This seems reasonable as the Republican cohort has over 1000 more observation points, allowing the model to learn more patterns but perhaps also has greater hidden variation to identify.
+Democrats had a higher proportion of the variance explained by the multiple linear regression model, with a higher $R^2$ value at $44.24$\% but higher RMSE. The Republican model had a slightly lower RMSE but lower $R^2$ of $37.84$\% variance explained by the model. This seems reasonable as the Republican cohort has over 1000 more observation points, allowing the model to learn more patterns but perhaps also has greater hidden variation to identify.
 
 ### Research Limitations
 
-With a larger subset for both parties, there is a lower risk of overfitting and would have allowed us to implement hyperparameter tuning for a more optimal model. A larger training set would also be beneficial to recognizing complex patterns between the predictors and response. In both cohorts, there were issues with a linear pattern appearing in the residuals versus fitted plot, indicating a missing term (relevant predictor or useful interaction) and preventing accurate construction of prediction intervals. Issues with lack of constant variance was present as well, more notably for the Republican cohort. A more extensive exploration of this political data may resolve these linear violations. 
+With a larger subset for both parties, there is a lower risk of overfitting, and it would have allowed us to implement hyperparameter tuning for a higher performance model. A larger training set would also be beneficial to recognizing complex patterns between the predictors and response. In both cohorts, there were issues with a linear pattern appearing in the residuals versus fitted plot, indicating a missing term (relevant predictor or useful interaction) and preventing accurate construction of prediction intervals. Issues with lack of constant variance was present as well, more notably for the Republican cohort. A more extensive exploration of this political data may resolve these linear violations, allowing for confidence bands and p-values.
 
 ### Future Directions
 
