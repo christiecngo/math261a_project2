@@ -118,8 +118,8 @@ The dataset is curated from Kimberly Martin’s analysis of voting trends on sta
 There are 29 different states with related bills in total with each row representing individual congressional members. Martin monitors for relevant bills based on the Movement Advancement Project (MAP) and the Human Rights Campaign (HRC). Though this dataset is originally intended to study trends specific to the transgender athlete ban in sports, it provides the most reliable and comprehensive demographic characteristics of elected officials. Each row is an official who has voted on a transgender athlete bill. The complete dataset contains 52 columns and 3654 rows in total. There is at least one Democratic and one Republican senator or representative included for each of the 29 states. Key features include binary variables about representatives, such as gender, race, and sexual orientation. Additional information includes the proportions of religious, racial, age, marital status, and educational categories for each official’s constituents. 
 
 ```{r fig-boxplot-mov}
-#| fig-width: 6
-#| fig-height: 5
+#| fig-width: 5
+#| fig-height: 4
 #| echo: false
 #| fig-cap: "A boxplot capturing the distribution of margins of victory across all officials (both parties) after removing 0s and 1s"
 
@@ -249,7 +249,7 @@ The Republican subset requires more advanced exploration to resolve linear regre
 Due to the lack of normality in the diagnostic plots, even after transformations, we are unable to construct prediction intervals for the point estimates of our test set. 
 
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE, results=FALSE}
+```{r, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE, results=FALSE}
 #| fig-width: 8
 #| fig-height: 6
 par(mfrow = c(2, 2))
@@ -375,18 +375,22 @@ results_rp <- resamples(list(
 
 Below are the boxplot comparisons of the results of the RMSE for the full, stepwise selected, and LASSO models:
 
-```{r fig-boxplot, echo=FALSE}
+```{r fig-boxplot3, echo=FALSE}
 #| fig-width: 4
 #| fig-height: 3
-#| fig-cap: "Boxplots for Distributions of Cross-Validation (k=10) RMSE. Democrat (top) and Republican (bottom)"
+#| fig-cap: "Boxplots for Distributions of Cross-Validation (k=10) RMSE - Republican"
 
-par(mfrow = c(2, 1))
-
-bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
 bwplot(results_rp, metric = "RMSE", main="Comparison of Republican Models")
 ```
+```{r fig-boxplot4, echo=FALSE}
+#| fig-width: 4
+#| fig-height: 3
+#| fig-cap: "Boxplots for Distributions of Cross-Validation (k=10) RMSE - Democrat"
 
-Though each plot in @fig-boxplot shows a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans. The stepwise variable selection performed the most poorly for both, especially for Republicans.
+bwplot(results_dm, metric = "RMSE", main="Comparison of Democratic Models")
+```
+
+Though plots in @fig-boxplot3 and @fig-boxplot4 show a wide, overlapping range of RMSE values, we will use the median of each. This is the LASSO model for Democrats and full model for Republicans. The stepwise variable selection performed the most poorly for both, especially for Republicans.
 
 ### Slope Interpretations
 
